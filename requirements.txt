@@ -1,2 +1,5 @@
 Flask-JWT-Extended
-Flask
+Flask 
+Flask-SQLAlchemy
+psycopg2-binary
+marshmallow
