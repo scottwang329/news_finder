@@ -1,7 +1,7 @@
 from flask import (
     Blueprint, request, Response
 )
-from werkzeug.security import safe_str_cmp
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -9,8 +9,7 @@ from flask_jwt_extended import (
     get_raw_jwt
 )
 from models.user import UserModel
-from exceptions.duplicate_user_exception import DuplicateUserException
-from exceptions.invalid_request_exception import InvalidRequestException
+from exceptions import *
 from marshmallow import Schema, fields, ValidationError
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -21,15 +20,21 @@ class RegisterSchema(Schema):
     password = fields.String(required=True)
 
 
+class LoginSchema(Schema):
+    username = fields.String(required=True)
+    password = fields.String(required=True)
+
+
 @bp.route('/register', methods=(['POST']))
 def register():
     data = request.json
-    try:
-        RegisterSchema().load(data)
-    except ValidationError as err:
-        raise InvalidRequestException()
+    # Validate request body
+    RegisterSchema().load(data)
+
     if UserModel.find_by_username(data["username"]):
         raise DuplicateUserException()
+
+    data["password"] = generate_password_hash(data["password"])
 
     user = UserModel(**data)
     user.save_to_db()
@@ -38,7 +43,18 @@ def register():
 
 @ bp.route('/login', methods=(['POST']))
 def login():
-    return Response(status=200)
+    data = request.json
+    # Validate request body
+    LoginSchema().load(data)
+
+    # find user in database
+    user = UserModel.find_by_username(data['username'])
+    if user == None or not check_password_hash(user.password, data["password"]):
+        raise InvalidCredentialException()
+    access_token = create_access_token(identity=user.id)
+    return {
+        "access_token": access_token
+    }, 200
 
 
 @ bp.errorhandler(DuplicateUserException)
@@ -46,6 +62,6 @@ def handle_duplicate_user_exception(ex: Exception):
     return {"message": str(ex)}, 400
 
 
-@ bp.errorhandler(InvalidRequestException)
-def handle_duplicate_user_exception(ex: Exception):
-    return {"message": str(ex)}, 400
+@ bp.errorhandler(InvalidCredentialException)
+def handle_invalid_credential_exception(ex: Exception):
+    return {"message": str(ex)}, 401

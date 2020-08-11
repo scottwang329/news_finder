@@ -3,3 +3,5 @@ Flask
 Flask-SQLAlchemy
 psycopg2-binary
 marshmallow
+python-dotenv
+newsapi-python

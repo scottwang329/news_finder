@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
 from rest import auth
+from marshmallow import ValidationError
 from db import db
 
 app = Flask(__name__)
@@ -38,6 +39,11 @@ app.register_blueprint(auth.bp)
 @app.before_first_request
 def create_tables():
     db.create_all()
+
+
+@ app.errorhandler(ValidationError)
+def handle_duplicate_user_exception(ex: Exception):
+    return {"message": str(ex)}, 400
 
 
 if __name__ == '__main__':
