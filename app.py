@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_jwt_extended import JWTManager
-from rest import auth
+from rest import auth, news
 from marshmallow import ValidationError
 from db import db
 
@@ -31,6 +31,7 @@ app.config.from_mapping(
 jwt = JWTManager(app)
 
 app.register_blueprint(auth.bp)
+app.register_blueprint(news.bp)
 
 # @jwt.user_claims_loader
 # def add_claims_to_jwt(identity):
