@@ -7,7 +7,7 @@ from datetime import datetime
 class UserModel(db.Model):
     __tablename__ = 'users'
 
-    id = db.Column(postgresql.UUID, primary_key=True)
+    id = db.Column(postgresql.UUID(as_uuid=True), primary_key=True)
     username = db.Column(postgresql.VARCHAR, unique=True, nullable=False)
     password = db.Column(postgresql.VARCHAR, nullable=False)
     created_at = db.Column(postgresql.TIMESTAMP, nullable=False)

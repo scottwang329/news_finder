@@ -2,14 +2,13 @@ from flask import (
     Blueprint, request, Response, jsonify
 )
 from external.news_api_client import newsapi
-from models.news import NewsModel
+from models.news import NewsModel, NewsSchema
+from models.ratings import RatingModel
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import IntegrityError
+from psycopg2 import errorcodes
 
 bp = Blueprint('news', __name__, url_prefix='/news')
-
-
-@bp.route('/<news_id>/like', methods=(['POST']))
-def like_news(news_id):
-    pass
 
 
 @bp.route('/toplines', methods=(['GET']))
@@ -19,4 +18,30 @@ def toplines():
         country="us", page=page)
     articles = [NewsModel(**article) for article in result["articles"]]
     NewsModel.bulk_save_to_db(articles)
-    return result, 200
+    newsSchema = NewsSchema(many=True)
+    return {
+        "status": result["status"],
+        "totalResults": result["totalResults"],
+        "articles": [newsSchema.dump(articles)]
+    }, 200
+
+
+@bp.route('/<news_id>/like', methods=(['POST']))
+@jwt_required
+def like_news(news_id):
+    user_id = get_jwt_identity()
+    ratingModel = RatingModel(user_id, news_id, 1)
+    # Ignore duplicate like request
+    ratingModel.save_to_db()
+
+    return Response(status=200)
+
+
+@bp.route('/<news_id>/dislike', methods=(['POST']))
+@jwt_required
+def dislike_news(news_id):
+    user_id = get_jwt_identity()
+    ratingModel = RatingModel(user_id, news_id, -1)
+    # Ignore duplicate disklike request
+    ratingModel.save_to_db()
+    return Response(status=200)
