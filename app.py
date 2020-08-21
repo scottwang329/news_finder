@@ -3,6 +3,9 @@ from flask_jwt_extended import JWTManager
 from rest import auth, news
 from marshmallow import ValidationError
 from db import db
+from apscheduler.schedulers.background import BackgroundScheduler
+import atexit
+from recommend.collabrative_filtering import generate_recommend_table
 
 app = Flask(__name__)
 
@@ -37,9 +40,12 @@ app.register_blueprint(news.bp)
 # def add_claims_to_jwt(identity):
 
 
-@app.before_first_request
-def create_tables():
-    db.create_all()
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=generate_recommend_table,
+                  trigger="interval", minutes=1)
+scheduler.start()
+
+atexit.register(lambda: scheduler.shutdown(wait=False))
 
 
 @ app.errorhandler(ValidationError)
@@ -49,4 +55,7 @@ def handle_duplicate_user_exception(ex: Exception):
 
 if __name__ == '__main__':
     db.init_app(app)
+    app.app_context().push()
+    db.create_all()
+
     app.run(port=5000, debug=True)

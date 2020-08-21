@@ -5,3 +5,7 @@ psycopg2-binary
 marshmallow
 python-dotenv
 newsapi-python
+apscheduler
+numpy
+pandas
+sklearn
