@@ -39,9 +39,15 @@ app.register_blueprint(news.bp)
 # @jwt.user_claims_loader
 # def add_claims_to_jwt(identity):
 
+db.init_app(app)
+ctx = app.app_context()
+app.app_context().push()
+db.create_all()
+
+generate_recommend_table(ctx)
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=generate_recommend_table,
+scheduler.add_job(func=lambda: generate_recommend_table(ctx),
                   trigger="interval", minutes=1)
 scheduler.start()
 
@@ -54,8 +60,5 @@ def handle_duplicate_user_exception(ex: Exception):
 
 
 if __name__ == '__main__':
-    db.init_app(app)
-    app.app_context().push()
-    db.create_all()
 
     app.run(port=5000, debug=True)

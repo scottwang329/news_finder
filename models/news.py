@@ -56,6 +56,10 @@ class NewsModel(db.Model):
         db.session.execute(upsert_stmt)
         db.session.commit()
 
+    @classmethod
+    def select_list_of_news(cls, news_ids):
+        return cls.query.filter(NewsModel.id.in_(news_ids)).all()
+
 
 class NewsSchema(Schema):
     id = fields.Str(required=True)

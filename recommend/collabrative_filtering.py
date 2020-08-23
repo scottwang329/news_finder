@@ -4,17 +4,17 @@ import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
 from sqlalchemy.dialects import postgresql
 from sqlalchemy import create_engine
-
-SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:postgres@localhost:5432/news_finder'
-engine = create_engine(SQLALCHEMY_DATABASE_URI, echo=False)
+from models.ratings import RatingModel
 
 
-def generate_recommend_table():
+def generate_recommend_table(ctx):
+
+    ctx.push()
 
     # Read news rating data from Rating table
-    rating_df = pd.read_sql_table(
-        'rating',
-        con=engine
+    rating_df = pd.read_sql(
+        db.session.query(RatingModel).statement,
+        db.session.bind
     )
 
     n_users = rating_df.user_id.nunique()
@@ -75,6 +75,6 @@ def generate_recommend_table():
     recommend_df['news_ids'] = [
         array for array in final.columns.values[np.argsort(-recommend_matrix, axis=1)[:, :10]]]
 
-    recommend_df.to_sql('recommend', con=engine, if_exists='replace',
+    recommend_df.to_sql('recommend', con=db.session.bind, if_exists='replace',
                         dtype={"user_id": postgresql.VARCHAR,
                                "news_ids": postgresql.ARRAY(postgresql.VARCHAR)})

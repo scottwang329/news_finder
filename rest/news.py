@@ -7,6 +7,7 @@ from models.ratings import RatingModel
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import IntegrityError
 from psycopg2 import errorcodes
+from models.recommend import RecommendModel
 
 bp = Blueprint('news', __name__, url_prefix='/news')
 
@@ -45,3 +46,15 @@ def dislike_news(news_id):
     # Ignore duplicate disklike request
     ratingModel.save_to_db()
     return Response(status=200)
+
+
+@bp.route('/recommend', methods=(['GET']))
+@jwt_required
+def recommend_news():
+    user_id = get_jwt_identity()
+    news_ids = RecommendModel.recommend_news_by_user_id(user_id)
+    news = NewsModel.select_list_of_news(news_ids)
+    newsSchema = NewsSchema(many=True)
+    return {
+        "news": newsSchema.dump(news)
+    }, 200
